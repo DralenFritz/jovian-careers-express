@@ -45,20 +45,17 @@ const transporter = nodemailer.createTransport({
 });
 
 app.post('/jobs/:id/apply', (req, res, next) => {
-
-    if (req.body['h-captcha-response'])  {
-      req.body.token = req.body['h-captcha-response'];
-    }
-    if (!req.hcaptcha || !req.hcaptcha.success) {
-      return res.status(400).render('verification-failed');
+    if (req.body['h-captcha-response']) {
+      req.body.token = req.body['h-captcha-response']; // 👈 map it
     }
     next();
-},
-hcaptcha.middleware.validate(SECRET), (req, res) => {
-
-
+  },
+  hcaptcha.middleware.validate(SECRET), (req, res) => {
+    if (!req.hcaptcha || !req.hcaptcha.success) {
+      return res.status(400).render('verification-failed');
+    } 
     
-    const { name, email, phone, DOB, CoverLetter, 'h-captcha-response': token } = req.body;
+    const { name, email, phone, DOB, CoverLetter } = req.body;
     
     const id = req.params.id;
     const matchedJob = JOBS.find(job => job.id.toString() === id);
@@ -91,7 +88,17 @@ hcaptcha.middleware.validate(SECRET), (req, res) => {
     });
 });
 
-
+app.use((err, req, res, next) => {
+  if (err && err.message && err.message.includes('no token provided')) {
+    return res.status(400).render('verification-failed');
+  }
+  if (err && err.message && err.message.includes('invalid-input-secret')) {
+    return res.status(400).send('Captcha secret key error. Check your .env');
+  }
+  // fallback for any other errors
+  console.error(err.stack);
+  res.status(500).send('Something went wrong. Please try again.');
+});
 
 
 const port = process.env.PORT || 3000;
