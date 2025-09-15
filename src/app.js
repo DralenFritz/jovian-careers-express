@@ -5,9 +5,16 @@ const express = require('express');
 const path = require('path');
 const JOBS = require('./jobs'); 
 const mustacheExpress = require('mustache-express');
+const cors = require('cors');
+const hcaptcha = require('express-hcaptcha');
+
+const SECRET = process.env.HCAPTCHA_SECRET_KEY;
+
 
 const app = express();
 
+// middleware
+app.use(cors());
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
@@ -37,11 +44,28 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-app.post('/jobs/:id/apply', (req, res) => {
-    const { name, email, phone, DOB, CoverLetter } = req.body;
+app.post('/jobs/:id/apply', (req, res, next) => {
+
+    if (req.body['h-captcha-response'])  {
+      req.body.token = req.body['h-captcha-response'];
+    }
+    if (!req.hcaptcha || !req.hcaptcha.success) {
+      return res.status(400).render('verification-failed');
+    }
+    next();
+},
+hcaptcha.middleware.validate(SECRET), (req, res) => {
+
+
+    
+    const { name, email, phone, DOB, CoverLetter, 'h-captcha-response': token } = req.body;
     
     const id = req.params.id;
     const matchedJob = JOBS.find(job => job.id.toString() === id);
+
+    if (!matchedJob) {
+        return res.status(404).send('Job not found!');
+    }
 
     const mailOptions = {
         from: process.env.EMAIL_ID, // Email in the transport
@@ -60,15 +84,14 @@ app.post('/jobs/:id/apply', (req, res) => {
         if (error) {
             console.error(error);
             res.status(500).send('Error Sending Email');
-        } 
-        if (!matchedJob) {
-            return res.status(404).send("Job not found");
         } else {
             console.log('Email sent: ' + info.response);
             res.status(200).render('applied');
         }
     });
-})
+});
+
+
 
 
 const port = process.env.PORT || 3000;
