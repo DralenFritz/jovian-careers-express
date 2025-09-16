@@ -68,7 +68,7 @@
         {{job.location}} · {{job.salary}} · Posted on {{job.posted}}
       </div>
 
-      <form action="/jobs/{{job.id}}/apply" method="POST" class="col-lg-8 offset-lg-2">
+      <form action="/jobs/{{job.id}}/apply" method="POST" class="col-lg-8 offset-lg-2" enctype="multipart/form-data">
 
         <!-- FULL-NMAE -->
         <div class="mb-3 col-sm-6">
@@ -94,6 +94,11 @@
         <div class="mb-3 col-sm-6">
           <label for="dob" class="form-label">Date of Birth</label><br>
           <input type="date" class="form-control" id="dob" name="DOB" required>
+        </div>
+
+        <div class="mb-3 col-sm-6">
+          <label for="resume" class="form-label">Upload Resume</label>
+          <input type="file" class="form-control" id="resume" name="resume" required />
         </div>
 
         <div class="mb-3">
@@ -133,7 +138,7 @@
       crossorigin="anonymous"></script>
 
     <script>
-    const token = document.querySelector('[name="h-captcha-response"]').value;
+      const token = document.querySelector('[name="h-captcha-response"]').value;
     </script>
 
 </body>

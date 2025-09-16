@@ -8,6 +8,10 @@ const mustacheExpress = require('mustache-express');
 const cors = require('cors');
 const hcaptcha = require('express-hcaptcha');
 
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({storage: storage});
+
 const SECRET = process.env.HCAPTCHA_SECRET_KEY;
 
 
@@ -44,9 +48,9 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-app.post('/jobs/:id/apply', (req, res, next) => {
+app.post('/jobs/:id/apply', upload.single('resume'), (req, res, next) => {
     if (req.body['h-captcha-response']) {
-      req.body.token = req.body['h-captcha-response']; // 👈 map it
+      req.body.token = req.body['h-captcha-response']; 
     }
     next();
   },
@@ -74,8 +78,16 @@ app.post('/jobs/:id/apply', (req, res, next) => {
             <p><strong>Phone: </strong>${phone}</p>
             <p><strong>Date of Birth: </strong>${DOB}</p>
             <p><strong>Cover Letter: </strong>${CoverLetter}</p>
-        `
+        `,
+        attachments: []
     };
+
+    if (req.file) {
+      mailOptions.attachments.push({
+        filename: req.file.originalname,
+        content: req.file.buffer
+      })
+    }
 
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
